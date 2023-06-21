@@ -19,12 +19,12 @@ if __name__ == "__main__":
         args = parser.parse_args()
 
         if args.rtt is None and args.loss is None:
-            print(f"TCPING {args.host}:{args.port} ({socket.gethostbyname(args.host)}): 56 data bytes")
+            print(f"TCPING {args.host}:{args.port} ({socket.gethostbyname(args.host)}): handshake")
 
         ret = tcpping(args.host, args.port, timeout=args.t, count=args.n, interval=args.i)
 
         if args.rtt is None and args.loss is None:
-            print(f"""--- {args.host} tcping statistics ---
+            print(f"""--- {args.host}:{args.port} tcping statistics ---
 {ret.packets_sent} packets transmitted, {ret.packets_received} packets received, {ret.packet_loss}% packet loss
 round-trip min/avg/max/stddev = {ret.min_rtt:.3f}/{ret.avg_rtt:.3f}/{ret.max_rtt:.3f}/xx.xxx ms
 """)
@@ -36,9 +36,9 @@ round-trip min/avg/max/stddev = {ret.min_rtt:.3f}/{ret.avg_rtt:.3f}/{ret.max_rtt
                 kpis.append(f"loss={ret.packet_loss};{args.loss[0]};{args.loss[1]}")
 
             if ret.is_alive:
-                print(f'P "tcping {args.host}" {"|".join(kpis)} {ret.packets_sent} packet sent')
+                print(f'P "tcping {args.host}:{args.port}" {"|".join(kpis)} {ret.packets_sent} packet sent')
             else:
-                print(f'2 "tcping {args.host}" {"|".join(kpis)} host down')
+                print(f'2 "tcping {args.host}:{args.port}" {"|".join(kpis)} host down')
 
     except KeyboardInterrupt:
         exit(0)
@@ -46,5 +46,5 @@ round-trip min/avg/max/stddev = {ret.min_rtt:.3f}/{ret.avg_rtt:.3f}/{ret.max_rtt
         if args.rtt is None and args.loss is None:
             print(e)
         else:
-            print(f'3 "tcping {args.host}" - Error: {e}')
+            print(f'3 "tcping {args.host}:{args.port}" - Error: {e}')
         exit(1)
