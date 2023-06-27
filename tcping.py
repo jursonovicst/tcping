@@ -4,15 +4,16 @@ import socket
 
 from tcppinglib import tcpping
 
-parser = argparse.ArgumentParser(description='Process some integers.')
+parser = argparse.ArgumentParser(description='PING over TCP')
 parser.add_argument('host', type=str, help='host')
 parser.add_argument('port', type=int, help='port')
-parser.add_argument('-i', type=float, default=1, help='wait')
-parser.add_argument('-n', type=int, default=5, help='count, use 0 for infinite')
-parser.add_argument('-t', type=float, default=5, help='timeout')
+parser.add_argument('-i', metavar='WAIT', type=float, default=1, help='wait (seconds) between pings')
+parser.add_argument('-n', metavar='COUNT', type=int, default=5, help='count of pings, use 0 for infinite')
+parser.add_argument('-t', metavar='TIMEOUT', type=float, default=5, help='timeout (seconds) of a single pin')
 
-parser.add_argument('--rtt', type=float, nargs=2, default=None, help='warn/crit level for RTT (ms)')
-parser.add_argument('--loss', type=float, nargs=2, default=None, help='warn/crit level for loss (%)')
+parser.add_argument('--rtt', type=float, default=None, nargs=2, help='checkmk warn/crit level for RTT (ms)')
+parser.add_argument('--loss', type=float, default=None, nargs=2, help='checkmk warn/crit level for loss (%%)')
+parser.add_argument('--name', type=str, default=None, help='checkmk additional text in service name')
 
 if __name__ == "__main__":
     try:
@@ -25,7 +26,7 @@ if __name__ == "__main__":
 
         if args.rtt is None and args.loss is None:
             print(f"""--- {args.host}:{args.port} tcping statistics ---
-{ret.packets_sent} packets transmitted, {ret.packets_received} packets received, {ret.packet_loss}% packet loss
+{ret.packets_sent} handshakes initiated, {ret.packets_received} handshakes completed, {ret.packet_loss}% handshakes failed
 round-trip min/avg/max/stddev = {ret.min_rtt:.3f}/{ret.avg_rtt:.3f}/{ret.max_rtt:.3f}/xx.xxx ms
 """)
         else:
@@ -36,15 +37,17 @@ round-trip min/avg/max/stddev = {ret.min_rtt:.3f}/{ret.avg_rtt:.3f}/{ret.max_rtt
                 kpis.append(f"loss={ret.packet_loss};{args.loss[0]};{args.loss[1]}")
 
             if ret.is_alive:
-                print(f'P "tcping {args.host}:{args.port}" {"|".join(kpis)} {ret.packets_sent} packet sent')
+                print(
+                    f'P "tcping{" " + args.name if args.name is not None else ""} {args.host}:{args.port}" {"|".join(kpis)} {ret.packets_sent} handshakes initiated')
             else:
-                print(f'2 "tcping {args.host}:{args.port}" {"|".join(kpis)} host down')
+                print(
+                    f'2 "tcping{" " + args.name if args.name is not None else ""} {args.host}:{args.port}" {"|".join(kpis)} host down')
 
     except KeyboardInterrupt:
         exit(0)
     except Exception as e:
-        if args.rtt is None and args.loss is None:
+        if 'rtt' in args and 'loss' in args is None:
             print(e)
         else:
-            print(f'3 "tcping {args.host}:{args.port}" - Error: {e}')
+            print(f'3 "tcping{" " + args.name if args.name is not None else ""} {args.host}:{args.port}" - Error: {e}')
         exit(1)
